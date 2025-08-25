@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:get_storage/get_storage.dart';
 
 class Playerselection extends StatefulWidget {
   const Playerselection({super.key});
@@ -20,6 +21,7 @@ class _PlayerselectionState extends State<Playerselection>
   late Animation<double> _fadeAnimation;
   List<Map<String, dynamic>> teams = []; // เพิ่มตัวแปรเก็บทีม
   String searchText = ''; // เพิ่มตัวแปรสำหรับค้นหา
+  final box = GetStorage();
 
   @override
   void initState() {
@@ -43,6 +45,11 @@ class _PlayerselectionState extends State<Playerselection>
       curve: Curves.easeOut,
     ));
     fetchPokemons();
+    // โหลด teams จาก storage
+    final savedTeams = box.read<List>('teams');
+    if (savedTeams != null) {
+      teams = List<Map<String, dynamic>>.from(savedTeams);
+    }
   }
 
   @override
@@ -325,18 +332,18 @@ class _PlayerselectionState extends State<Playerselection>
     );
 
     if (result == true && teamName.trim().isNotEmpty) {
-      // สร้าง team object พร้อม pokemon data ที่สมบูรณ์
       final selectedPokemonData = pokemons
           .where((p) => selectedPokemons.contains(p['id']))
           .toList();
-      
+
       setState(() {
         teams.add({
           'name': teamName.trim(),
-          'pokemons': selectedPokemonData, // เก็บข้อมูล pokemon เต็ม ๆ แทนแค่ id
+          'pokemons': selectedPokemonData,
           'createdAt': DateTime.now().toIso8601String(),
         });
-        selectedPokemons.clear(); // รีเซ็ตการเลือกหลังสร้างทีม
+        selectedPokemons.clear();
+        box.write('teams', teams); // <<--- เซฟ teams ทุกครั้งที่เพิ่ม
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -348,6 +355,8 @@ class _PlayerselectionState extends State<Playerselection>
       );
     }
   }
+
+  // ถ้ามีจุดลบทีม ให้เพิ่ม box.write('teams', teams); หลัง setState เช่นกัน
 
   // เพิ่มฟังก์ชันสำหรับแสดง dialog ยืนยันก่อนออก
   Future<bool> _showExitConfirmation() async {

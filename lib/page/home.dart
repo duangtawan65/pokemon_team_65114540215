@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart'; // เพิ่มบรรทัดนี้
 import 'package:myapp/page/playerselection.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -12,6 +13,17 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<Map<String, dynamic>> teams = [];
+  final box = GetStorage(); // เพิ่มบรรทัดนี้
+
+  @override
+  void initState() {
+    super.initState();
+    // โหลด teams จาก storage
+    final savedTeams = box.read<List>('teams');
+    if (savedTeams != null) {
+      teams = List<Map<String, dynamic>>.from(savedTeams);
+    }
+  }
 
   Future<void> _openPlayerSelection() async {
     final result = await Navigator.push(
@@ -23,6 +35,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         // เพิ่มทีมใหม่เข้ากับทีมเดิม (ถ้ามี)
         teams.addAll(result);
+        box.write('teams', teams); // เพิ่มบรรทัดนี้
       });
       
       // แสดงข้อความยืนยัน
@@ -94,6 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
           teams[index]['name'] = newName.trim();
           // อัพเดท timestamp ถ้ามี
           teams[index]['updatedAt'] = DateTime.now().toIso8601String();
+          box.write('teams', teams); // เพิ่มบรรทัดนี้
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -121,6 +135,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               setState(() {
                 teams.removeAt(index);
+                box.write('teams', teams); // เพิ่มบรรทัดนี้
               });
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -158,6 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               setState(() {
                 teams.clear();
+                box.write('teams', teams); // เพิ่มบรรทัดนี้
               });
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
