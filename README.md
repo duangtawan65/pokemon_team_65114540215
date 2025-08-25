@@ -1,16 +1,20 @@
-# myapp
+**pokemon_team 
 
-A new Flutter project.
+1.ดึง api  มาจาก pokeAPI
 
-## Getting Started
+2.แสดง list pokemon 
 
-This project is a starting point for a Flutter application.
+3.ทำปุ่ม reset selected 
 
-A few resources to get you started if this is your first Flutter project:
+4.ทำ search bar แล้ว filter ตาม type โปเกม่อน 
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+5.สร้างทีมแล้วบันทึกได้ โดยทีม สามารถ edit ชื่อ ทีม แล้วก็ลบรายการแล้ว  ใช้ get_storage โดยรายการจะไปแสดงอยู่หน้า home
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+6.สามารถกดปุ่ม สร้างทีมหน้า home ได้
+
+**command 
+
+flutter run -d chrome
+
+นายดวงตะวัน สิ่งส่า 65114540215
+
