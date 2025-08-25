@@ -1,4 +1,4 @@
-#pokemon_team
+# pokemon_team
 
 1.ดึง api  มาจาก pokeAPI
 
@@ -12,7 +12,7 @@
 
 6.สามารถกดปุ่ม สร้างทีมหน้า home ได้
 
-##command
+## command
 
 flutter run -d chrome
 
