@@ -9,7 +9,7 @@ class Playerselection extends StatefulWidget {
   State<Playerselection> createState() => _PlayerselectionState();
 }
 
-class _PlayerselectionState extends State<Playerselection> 
+class _PlayerselectionState extends State<Playerselection>
     with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> pokemons = [];
   final List<int> selectedPokemons = [];
@@ -19,6 +19,7 @@ class _PlayerselectionState extends State<Playerselection>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   List<Map<String, dynamic>> teams = []; // เพิ่มตัวแปรเก็บทีม
+  String searchText = ''; // เพิ่มตัวแปรสำหรับค้นหา
 
   @override
   void initState() {
@@ -167,6 +168,7 @@ class _PlayerselectionState extends State<Playerselection>
             ),
           ),
         );
+        
       },
     );
   }
@@ -388,400 +390,435 @@ class _PlayerselectionState extends State<Playerselection>
 
   @override
   Widget build(BuildContext context) {
-  final selectedPokemonData = pokemons
-      .where((p) => selectedPokemons.contains(p['id']))
-      .toList();
+    final selectedPokemonData = pokemons
+        .where((p) => selectedPokemons.contains(p['id']))
+        .toList();
 
-  final filteredPokemons = selectedType == null
-      ? pokemons
-      : pokemons.where((p) => (p['types'] as List).contains(selectedType)).toList();
+    // ฟิลเตอร์โปเกม่อนตามประเภทและค้นหา
+    final filteredPokemons = (selectedType == null
+            ? pokemons
+            : pokemons.where((p) => (p['types'] as List).contains(selectedType)))
+        .where((p) =>
+            p['name'].toString().toLowerCase().contains(searchText.toLowerCase()))
+        .toList();
 
-  return WillPopScope(
-    onWillPop: () async {
-      if (teams.isNotEmpty) {
-        final shouldExit = await _showExitConfirmation();
-        if (shouldExit) {
-          Navigator.pop(context, teams);
+    return WillPopScope(
+      onWillPop: () async {
+        if (teams.isNotEmpty) {
+          final shouldExit = await _showExitConfirmation();
+          if (shouldExit) {
+            Navigator.pop(context, teams);
+            return false;
+          }
           return false;
         }
-        return false;
-      }
-      return true;
-    },
-    child: Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: Column(
-          children: [
-            if (selectedPokemons.isEmpty)
-              Text(
-                teams.isEmpty
-                    ? 'เลือกโปเกม่อนของคุณ'
-                    : 'สร้างทีมแล้ว ${teams.length} ทีม',
-                style: const TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            if (selectedPokemons.isNotEmpty)
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: selectedPokemonData.map((pokemon) => Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Chip(
-                      avatar: CircleAvatar(
-                        backgroundImage: NetworkImage(pokemon['image']),
-                        backgroundColor: Colors.grey.shade200,
-                      ),
-                      label: Text(
-                        pokemon['name'],
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-                      ),
-                      backgroundColor: Colors.red.shade50,
-                      deleteIcon: const Icon(Icons.close, size: 18, color: Colors.red),
-                      onDeleted: () {
-                        setState(() {
-                          selectedPokemons.remove(pokemon['id']);
-                        });
-                      },
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: Colors.red.shade200),
-                      ),
-                    ),
-                  )).toList(),
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          title: Column(
+            children: [
+              if (selectedPokemons.isEmpty)
+                Text(
+                  teams.isEmpty
+                      ? 'เลือกโปเกม่อนของคุณ'
+                      : 'สร้างทีมแล้ว ${teams.length} ทีม',
+                  style: const TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+              if (selectedPokemons.isNotEmpty)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: selectedPokemonData.map((pokemon) => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Chip(
+                        avatar: CircleAvatar(
+                          backgroundImage: NetworkImage(pokemon['image']),
+                          backgroundColor: Colors.grey.shade200,
+                        ),
+                        label: Text(
+                          pokemon['name'],
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                        ),
+                        backgroundColor: Colors.red.shade50,
+                        deleteIcon: const Icon(Icons.close, size: 18, color: Colors.red),
+                        onDeleted: () {
+                          setState(() {
+                            selectedPokemons.remove(pokemon['id']);
+                          });
+                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: Colors.red.shade200),
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            if (selectedPokemons.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.red),
+                tooltip: 'Reset Selection',
+                onPressed: resetSelection,
+              ),
+            if (teams.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.check, color: Colors.green),
+                tooltip: 'เสร็จสิ้น',
+                onPressed: () async {
+                  final shouldExit = await _showExitConfirmation();
+                  if (shouldExit) {
+                    Navigator.pop(context, teams);
+                  }
+                },
               ),
           ],
         ),
-        actions: [
-          if (selectedPokemons.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.red),
-              tooltip: 'Reset Selection',
-              onPressed: resetSelection,
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.red.shade50,
+                Colors.white,
+              ],
             ),
-          if (teams.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.check, color: Colors.green),
-              tooltip: 'เสร็จสิ้น',
-              onPressed: () async {
-                final shouldExit = await _showExitConfirmation();
-                if (shouldExit) {
-                  Navigator.pop(context, teams);
-                }
-              },
-            ),
-        ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.red.shade50,
-              Colors.white,
-            ],
           ),
-        ),
-        child: pokemons.isEmpty
-            ? const Center(child: CircularProgressIndicator(color: Colors.red))
-            : Column(
-                children: [
-                  // แสดงสถานะการกรอง
-                  if (selectedType != null)
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(_getTypeIcon(selectedType!), 
-                               color: Colors.red, size: 16),
-                          const SizedBox(width: 8),
-                          Text(
-                            'กรองแล้ว: $selectedType',
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
-                            ),
+          child: pokemons.isEmpty
+              ? const Center(child: CircularProgressIndicator(color: Colors.red))
+              : Column(
+                  children: [
+                    // --- เพิ่ม Search Bar ---
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'ค้นหาโปเกม่อน...',
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: Colors.red.shade100),
                           ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () => setState(() => selectedType = null),
-                            child: const Icon(Icons.close, 
-                                             color: Colors.red, size: 16),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: Colors.red.shade100),
                           ),
-                        ],
-                      ),
-                    ),
-                  // แสดงรายการทีมที่สร้างแล้ว
-                  if (teams.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.all(8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.group, color: Colors.green, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'ทีมที่สร้างแล้ว (${teams.length})',
-                                style: const TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: Colors.red.shade400, width: 2),
                           ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: teams.map((team) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${team['name']} (${(team['pokemons'] as List).length})',
-                                style: TextStyle(
-                                  color: Colors.green.shade700,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            )).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: GridView.builder(
-                        itemCount: filteredPokemons.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.8,
                         ),
-                        itemBuilder: (context, index) {
-                          final pokemon = filteredPokemons[index];
-                          final isSelected = selectedPokemons.contains(pokemon['id']);
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (isSelected) {
-                                  selectedPokemons.remove(pokemon['id']);
-                                } else if (selectedPokemons.length < 3) {
-                                  selectedPokemons.add(pokemon['id']);
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('เลือกได้สูงสุด 3 ตัวเท่านั้น'),
-                                      backgroundColor: Colors.orange,
-                                    ),
-                                  );
-                                }
-                              });
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.red.shade100 : Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isSelected ? Colors.red : Colors.grey.shade300,
-                                  width: isSelected ? 3 : 1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: isSelected
-                                        ? Colors.red.withOpacity(0.15)
-                                        : Colors.grey.withOpacity(0.08),
-                                    blurRadius: isSelected ? 12 : 6,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
+                        onChanged: (value) {
+                          setState(() {
+                            searchText = value;
+                          });
+                        },
+                      ),
+                    ),
+                    // --- จบ Search Bar ---
+                    // แสดงสถานะการกรอง
+                    if (selectedType != null)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_getTypeIcon(selectedType!), 
+                                 color: Colors.red, size: 16),
+                            const SizedBox(width: 8),
+                            Text(
+                              'กรองแล้ว: $selectedType',
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
                               ),
-                              child: Stack(
-                                children: [
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => setState(() => selectedType = null),
+                              child: const Icon(Icons.close, 
+                                               color: Colors.red, size: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    // แสดงรายการทีมที่สร้างแล้ว
+                    if (teams.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.group, color: Colors.green, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'ทีมที่สร้างแล้ว (${teams.length})',
+                                  style: const TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: teams.map((team) => Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${team['name']} (${(team['pokemons'] as List).length})',
+                                  style: TextStyle(
+                                    color: Colors.green.shade700,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: GridView.builder(
+                          itemCount: filteredPokemons.length,
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.8,
+                          ),
+                          itemBuilder: (context, index) {
+                            final pokemon = filteredPokemons[index];
+                            final isSelected = selectedPokemons.contains(pokemon['id']);
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    selectedPokemons.remove(pokemon['id']);
+                                  } else if (selectedPokemons.length < 3) {
+                                    selectedPokemons.add(pokemon['id']);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('เลือกได้สูงสุด 3 ตัวเท่านั้น'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  }
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? Colors.red.shade100 : Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.red : Colors.grey.shade300,
+                                    width: isSelected ? 3 : 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: isSelected
+                                          ? Colors.red.withOpacity(0.15)
+                                          : Colors.grey.withOpacity(0.08),
+                                      blurRadius: isSelected ? 12 : 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Stack(
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(12),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.grey.withOpacity(0.12),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          padding: const EdgeInsets.all(8),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(12),
+                                            child: Image.network(
+                                              pokemon['image'],
+                                              height: 70,
+                                              width: 70,
+                                              fit: BoxFit.contain,
+                                              errorBuilder: (context, error, stackTrace) => Container(
+                                                color: Colors.grey[300],
+                                                height: 70,
+                                                width: 70,
+                                                child: const Icon(Icons.error, color: Colors.grey),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          pokemon['name'],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: isSelected ? Colors.red : Colors.black87,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Wrap(
+                                          spacing: 2,
+                                          runSpacing: 2,
+                                          children: (pokemon['types'] as List<String>)
+                                              .map((type) => Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: isSelected
+                                                          ? Colors.red.withOpacity(0.2)
+                                                          : Colors.grey.shade200,
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Text(
+                                                      type,
+                                                      style: TextStyle(
+                                                        fontSize: 9,
+                                                        color: isSelected
+                                                            ? Colors.red.shade700
+                                                            : Colors.grey.shade700,
+                                                      ),
+                                                    ),
+                                                  ))
+                                              .toList(),
+                                        ),
+                                      ],
+                                    ),
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: Container(
                                         decoration: BoxDecoration(
                                           color: Colors.white,
                                           borderRadius: BorderRadius.circular(12),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.grey.withOpacity(0.12),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
+                                              color: Colors.black.withOpacity(0.08),
+                                              blurRadius: 3,
+                                              offset: const Offset(0, 1),
                                             ),
                                           ],
                                         ),
-                                        padding: const EdgeInsets.all(8),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(12),
-                                          child: Image.network(
-                                            pokemon['image'],
-                                            height: 70,
-                                            width: 70,
-                                            fit: BoxFit.contain,
-                                            errorBuilder: (context, error, stackTrace) => Container(
-                                              color: Colors.grey[300],
-                                              height: 70,
-                                              width: 70,
-                                              child: const Icon(Icons.error, color: Colors.grey),
+                                        child: Transform.scale(
+                                          scale: 0.8,
+                                          child: Checkbox(
+                                            value: isSelected,
+                                            activeColor: Colors.red,
+                                            checkColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(4),
                                             ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        pokemon['name'],
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: isSelected ? Colors.red : Colors.black87,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Wrap(
-                                        spacing: 2,
-                                        runSpacing: 2,
-                                        children: (pokemon['types'] as List<String>)
-                                            .map((type) => Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: isSelected
-                                                        ? Colors.red.withOpacity(0.2)
-                                                        : Colors.grey.shade200,
-                                                    borderRadius: BorderRadius.circular(8),
-                                                  ),
-                                                  child: Text(
-                                                    type,
-                                                    style: TextStyle(
-                                                      fontSize: 9,
-                                                      color: isSelected
-                                                          ? Colors.red.shade700
-                                                          : Colors.grey.shade700,
+                                            onChanged: (bool? value) {
+                                              setState(() {
+                                                if (value == true && selectedPokemons.length < 3) {
+                                                  selectedPokemons.add(pokemon['id']);
+                                                } else if (value == false) {
+                                                  selectedPokemons.remove(pokemon['id']);
+                                                } else if (value == true && selectedPokemons.length >= 3) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('เลือกได้สูงสุด 3 ตัวเท่านั้น'),
+                                                      backgroundColor: Colors.orange,
                                                     ),
-                                                  ),
-                                                ))
-                                            .toList(),
-                                      ),
-                                    ],
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.08),
-                                            blurRadius: 3,
-                                            offset: const Offset(0, 1),
+                                                  );
+                                                }
+                                              });
+                                            },
                                           ),
-                                        ],
-                                      ),
-                                      child: Transform.scale(
-                                        scale: 0.8,
-                                        child: Checkbox(
-                                          value: isSelected,
-                                          activeColor: Colors.red,
-                                          checkColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          onChanged: (bool? value) {
-                                            setState(() {
-                                              if (value == true && selectedPokemons.length < 3) {
-                                                selectedPokemons.add(pokemon['id']);
-                                              } else if (value == false) {
-                                                selectedPokemons.remove(pokemon['id']);
-                                              } else if (value == true && selectedPokemons.length >= 3) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text('เลือกได้สูงสุด 3 ตัวเท่านั้น'),
-                                                    backgroundColor: Colors.orange,
-                                                  ),
-                                                );
-                                              }
-                                            });
-                                          },
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-      ),
-      floatingActionButton: Builder(
-        builder: (context) => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (selectedPokemons.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: FloatingActionButton.extended(
-                  heroTag: 'create-team-fab',
-                  backgroundColor: Colors.green,
-                  icon: const Icon(Icons.group_add, color: Colors.white),
-                  label: Text(
-                    'สร้างทีม (${selectedPokemons.length}/3)',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  onPressed: selectedPokemons.isNotEmpty ? _showCreateTeamDialog : null,
+                  ],
                 ),
+        ),
+        floatingActionButton: Builder(
+          builder: (context) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (selectedPokemons.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: FloatingActionButton.extended(
+                    heroTag: 'create-team-fab',
+                    backgroundColor: Colors.green,
+                    icon: const Icon(Icons.group_add, color: Colors.white),
+                    label: Text(
+                      'สร้างทีม (${selectedPokemons.length}/3)',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onPressed: selectedPokemons.isNotEmpty ? _showCreateTeamDialog : null,
+                  ),
+                ),
+              FloatingActionButton(
+                heroTag: 'filter-fab',
+                backgroundColor: Colors.red,
+                child: Icon(
+                  selectedType != null ? Icons.filter_alt : Icons.filter_alt_outlined,
+                  color: Colors.white,
+                ),
+                onPressed: () => _showFilterMenu(context),
+                tooltip: 'กรองตามประเภท',
               ),
-            FloatingActionButton(
-              heroTag: 'filter-fab',
-              backgroundColor: Colors.red,
-              child: Icon(
-                selectedType != null ? Icons.filter_alt : Icons.filter_alt_outlined,
-                color: Colors.white,
-              ),
-              onPressed: () => _showFilterMenu(context),
-              tooltip: 'กรองตามประเภท',
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
