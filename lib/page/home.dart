@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart'; // เพิ่มบรรทัดนี้
+import 'package:myapp/page/detail.dart';
 import 'package:myapp/page/playerselection.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -26,25 +28,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _openPlayerSelection() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const Playerselection()),
-    );
+    final result = await Get.to(() => const Playerselection());
     
     if (result != null && result is List<Map<String, dynamic>>) {
       setState(() {
-        // เพิ่มทีมใหม่เข้ากับทีมเดิม (ถ้ามี)
         teams.addAll(result);
-        box.write('teams', teams); // เพิ่มบรรทัดนี้
+        box.write('teams', teams);
       });
       
-      // แสดงข้อความยืนยัน
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ได้รับทีมใหม่ ${result.length} ทีม!'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
+      Get.snackbar(
+        'สำเร็จ',
+        'ได้รับทีมใหม่ ${result.length} ทีม!',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
       );
     }
   }
@@ -197,185 +194,188 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildTeamCard(Map<String, dynamic> team, int index) {
     final pokemons = team['pokemons'] as List<dynamic>;
     
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: () => Get.to(() => Detail(team: team)), // เพิ่ม GetX navigation
+      child: Card(
+        elevation: 4,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.blue.withOpacity(0.1),
-              Colors.purple.withOpacity(0.1),
-            ],
-          ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header ของทีม
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _editTeamName(index),
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              team['name'],
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.indigo,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.edit,
-                            size: 16,
-                            color: Colors.indigo.withOpacity(0.6),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${pokemons.length} สมาชิก',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, color: Colors.grey.shade600, size: 20),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'edit':
-                          _editTeamName(index);
-                          break;
-                        case 'delete':
-                          _deleteTeam(index);
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.blue.withOpacity(0.1),
+                Colors.purple.withOpacity(0.1),
+              ],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header ของทีม
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _editTeamName(index),
                         child: Row(
                           children: [
-                            Icon(Icons.edit, color: Colors.blue, size: 18),
-                            SizedBox(width: 8),
-                            Text('แก้ไขชื่อ'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red, size: 18),
-                            SizedBox(width: 8),
-                            Text('ลบทีม'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              // แสดงรูป Pokemon ในทีม
-              if (pokemons.isNotEmpty)
-                Container(
-                  height: 80,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: pokemons.length,
-                    itemBuilder: (context, pokemonIndex) {
-                      final pokemon = pokemons[pokemonIndex];
-                      return Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        child: Column(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.3),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              padding: const EdgeInsets.all(4),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: Image.network(
-                                  pokemon['image'],
-                                  width: 50,
-                                  height: 50,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    width: 50,
-                                    height: 50,
-                                    color: Colors.grey[300],
-                                    child: const Icon(Icons.error, size: 20),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            SizedBox(
-                              width: 58,
+                            Flexible(
                               child: Text(
-                                pokemon['name'],
-                                style: const TextStyle(fontSize: 10),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
+                                team['name'],
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.indigo,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.edit,
+                              size: 16,
+                              color: Colors.indigo.withOpacity(0.6),
+                            ),
                           ],
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${pokemons.length} สมาชิก',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert, color: Colors.grey.shade600, size: 20),
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'edit':
+                            _editTeamName(index);
+                            break;
+                          case 'delete':
+                            _deleteTeam(index);
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, color: Colors.blue, size: 18),
+                              SizedBox(width: 8),
+                              Text('แก้ไขชื่อ'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, color: Colors.red, size: 18),
+                              SizedBox(width: 8),
+                              Text('ลบทีม'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              
-              const SizedBox(height: 8),
-              
-              // แสดงวันที่สร้าง (ถ้ามี)
-              if (team['createdAt'] != null)
-                Text(
-                  'สร้างเมื่อ: ${_formatDate(team['createdAt'])}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
+                const SizedBox(height: 12),
+                
+                // แสดงรูป Pokemon ในทีม
+                if (pokemons.isNotEmpty)
+                  Container(
+                    height: 80,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: pokemons.length,
+                      itemBuilder: (context, pokemonIndex) {
+                        final pokemon = pokemons[pokemonIndex];
+                        return Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          child: Column(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Image.network(
+                                    pokemon['image'],
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      width: 50,
+                                      height: 50,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.error, size: 20),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              SizedBox(
+                                width: 58,
+                                child: Text(
+                                  pokemon['name'],
+                                  style: const TextStyle(fontSize: 10),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-            ],
+                
+                const SizedBox(height: 8),
+                
+                // แสดงวันที่สร้าง (ถ้ามี)
+                if (team['createdAt'] != null)
+                  Text(
+                    'สร้างเมื่อ: ${_formatDate(team['createdAt'])}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
